@@ -1,33 +1,35 @@
 # Stage 1: Build stage
-FROM node:18-alpine as builder
+FROM node:18-alpine AS builder
 
-# Set working directory
+# Set the working directory inside the container
 WORKDIR /app
 
-# Install dependencies
+# Copy the package.json and package-lock.json files
 COPY package*.json ./
+
+# Install dependencies
 RUN npm install
 
-# Copy the rest of the application files
+# Copy all files and directories into the container
 COPY . .
 
 # Build the NestJS application (this will create the dist folder)
 RUN npm run build
 
-# Stage 2: Development stage
+# Stage 2: Runtime stage
 FROM node:18-alpine
 
-# Set working directory
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy node_modules and build files from builder stage
+# Copy node_modules and build files from the builder stage
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/tsconfig.json ./
 
-# Copy the rest of the application files (including tsconfig.json and src)
-COPY . .
-
-# Expose port 3000
+# Expose the port used by the application
 EXPOSE 5000
 
 # Start the application
-CMD ["npm", "run", "start"]
+CMD ["npm", "start"]
